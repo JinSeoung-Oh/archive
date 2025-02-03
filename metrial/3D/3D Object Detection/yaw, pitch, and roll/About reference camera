@@ -1,0 +1,40 @@
+정의
+Open image-20221111-074618.png
+
+위 그림처럼 하나의 장면에 대하여 여러 대의 카메라로 찍었을 경우, 각 카메라 별로 1장의 이미지가 생성될 것임
+
+이때 생성된 여러 장의 이미지 중에 1개의 이미지를 선택 (위 그림의 왼쪽 이미지 사진) 했을 때, 해당 이미지를 찍은 카메라(위 그림의 오른쪽 이미지에서 빨간 원으로 표시된 카메라)를 Reference camera 라고 부름
+
+Reference camera라고 불리는 이유는, 해당 카메라를 기준으로 나머지 카메라들의 intrinsic matrix를 조정하기 때문임 → 그 결과로 모든 카메라의 intrinsic matrix는 같은 값을 가지게 됨
+
+따라서 나머지 카메라들의 intrinsic matrix를 조정할 때 사용된 값들을 calib 파일 내에 표시를 해야되는데, 이 경우 calib 파일 내의 intrinsic matrix는 3x4가 됨
+
+Reference camera가 없는 data의 경우 intrinsic matrix가 3x3임
+
+ 
+
+Reference camera 예시
+Reference camera가 존재 할 시에 intrinsic matrix는 [intrinsic matrix | baseline parameter]
+Open image-20221111-075321.png
+
+calib_2 예시
+Open image-20221111-080716.png
+
+바로 위의 값들이 baseline parameter로 Reference camera와 위 예시 calib 파일에 해당되는 camera 사이의 실제 거리(단위 : meter)를 계산한 값들임
+
+ 
+
+Reference camera와 아닌 카메라 구별 법
+Baseline parameter는 Reference camera와 Reference camera가 아닌 camera 사이의 실제 거리를 나타내는 값들임
+
+따라서 Baseline parameter의 값들이 모두 0이면 해당 calib의 카메라가 Reference camera가 됨
+
+Open image-20221111-082021.png
+
+calib_0 예시
+calib_0이 Reference camera 이고 calib_2는 Reference camera가 아님
+
+calib_0와 calib_2의 intrinsic matrix가 동일함을 알 수 있음
+
+baseline parameter를 이용하면 calib_2의 고유 intrinsic matrix를 구할 수 있음 → Principal point(C_X, C_Y) 값을 구할 수 있다는 의미 [모두 동일한 기종의 카메라로 찍었다고 가정할 시에]
+

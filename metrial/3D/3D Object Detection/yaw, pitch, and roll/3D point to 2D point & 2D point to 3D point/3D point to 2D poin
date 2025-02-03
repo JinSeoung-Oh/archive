@@ -1,0 +1,88 @@
+3D point to 2D point
+변환을 위해 필요한 조건
+3D point (x,y,z)
+
+intrinsic matrix (3x3) → intrinsic matrix가 (3x4)면 inference camera가 존재하는 calib임. 따라서 [3][0] , [3][1], [3][2]의 원소(4번째 열)를 제외한 나머지 원소로 intrinsic matrix를 따로 정의해야 함
+
+Extrinsic matrix (3x4) → Extrinsic matrix는  Rotation matrix와 Translation matrix로 이루어져 있음. 이때, Extrinsic matrix = [Rotation matrix | Translation matrix]로 표기가 됨. 이 부분이 매우 중요
+
+LearnOpenGL - Coordinate Systems 
+
+3D point to 2D point 변환 계산 공식
+Open image-20221130-083516.png
+
+이때  S는 아래 그림의 빨간색 & 초록색 삼각형의 닮음을 이용하여 x = (f)x(X/Z)와 y = (f)x(Y/Z)라는 공식이 유도 됨. 이때 f는 focal length(렌즈에서 이미지 센서까지의 거리)를 의미하고 Z는 렌즈에서 object까지의 실제 거리를 의미함(depth 값이라고 보면 됨)
+
+Open image-20221130-083726.png
+
+Extrinsic matrix와 3D world 좌표를 계산하면 ‘fictitious 3D coordination’이 계산이 되게 되고, 이를 Homogeneous coordinates를 이용하면 아래 그림과 같이 공식이 유도 됨
+
+Open image-20221130-084530.png
+
+ 이때 z'는 depth 값을 의미함
+
+intrinsic matrix와 Extrinsic matrix 그리고 3D 좌표를 계산하면 (3x1) → (X',Y',Z')의 좌표가 구해짐. 이를 바로 위의 Homogeneous Coordinates를 이용하면 2D 좌표 (x, y) = (X'/Z', Y'/Z')
+
+이때 Extrinsic matrix와 3D world 좌표를 계산해보면 r11X + r12Y + r13Z + T1으로 전개가 됨. 다시 말해서 Extrinsic matrix를 [R | T]로 표기한 것은 보기 편하라고(?) 한 것이고 실제로 위의 공식을 전개해보면 2D image 좌표 = [intrinsic matrix] * [Rotation matrix] * 3D 좌표 + [Translation matrix]임. 둘을 전개해보면 같은 공식임을 알 수 있음 / 이때 *는 matrix 곱으로 np.matmul을 의미함
+
+맨 위의 공식을 따라서 계산하면 NDC(Normalize Device Coordinate or Clip spce) 좌표계 상의 x,y 값을 구할 수 있음
+
+위의 공식을 따라가면 0<x<1 and 0<y<1의 값을 얻을 수 있음 ← 이 범위를 벗어나면 계산 잘못 한거니까 재 검토 필요
+
+이때 2D image 좌표 (u,v)는 다음의 공식으로 구해짐
+
+u = fx*x + cx ,  fx는 focal length로 intrinsic matrix의 [0,0] 값이며 cx는 principal point의 x 좌표로 intrinsic matrix의 [0,2] 값임 
+
+v = fy*y+ cy,   fy는 focal length로 intrinsic matrix의 [1,1] 값이며 cy는 principal point의 y 좌표로 intrinsic matrix의 [1,2] 값임
+
+ 
+
+Compute_box_3d.py (center points, h,w,l, rotation_angle로 큐보이드 좌표 구하는 코드) 
+
+이때 center points는 카메라 좌표계 상의 points로 아래 코드로 구해지는 큐보이드 좌표들 역시 카메라 좌표계 상의 좌표들임
+
+따라서 NDC 좌표로 변환이 필요 (x = X/Z , y = Y/Z)
+
+이렇게 변환된 NCD 좌표를 (u,v)를 구하는 공식에 대입하면 2D 큐보이드 좌표로 변환이 되게 됨
+
+
+
+def compute_box_3d(dim, location, ry):
+    # dim: 3
+    # location: 3
+    # ry: 1
+    # return: 8 x 3
+    R = roty(ry)
+    h, w, l = dim
+    cx,cy,cz = location
+    x_corners = [l / 2, l / 2, -l / 2, -l / 2, l / 2, l / 2, -l / 2, -l / 2]
+    #y_corners = [0, 0, 0, 0, -h, -h, -h, -h]
+    y_corners = [h / 2, h / 2, h / 2, h / 2, -h / 2, -h / 2, -h / 2, -h / 2]
+    z_corners = [w / 2, -w / 2, -w / 2, w / 2, w / 2, -w / 2, -w / 2, w / 2]
+    corners_3d = np.dot(R, np.vstack([x_corners, y_corners, z_corners]))
+    corners_3d[0, :] = corners_3d[0, :] + cx
+    corners_3d[1, :] = corners_3d[1, :] + cy
+    corners_3d[2, :] = corners_3d[2, :] + cz
+    return np.transpose(corners_3d, (1, 0))
+2D point to 3D point (revise 필요)
+Open image-20221130-083516.png
+
+위 공식의 역순으로 계산하면 됨
+
+먼저 (X', Y', Z')를 구해야 하는데 u = X'/Z', v = Y'/Z', 1 = Z'/Z'로 구해진 값임
+
+아래부터 *는 행렬 곱셈을 의미 –>  np.matmul 
+
+[matrix]^-1은 역행렬을 의미
+
+따라서 Z(depth) 값을 이용(고정 시키거나 or depth estimation을 이용해서 구해야 함)하여 (X',Y',Z') = (u*Z, v*Z, 1*Z) 좌표를 구함
+
+위의 공식에서 Extrinsic matrix와 3D 좌표는 다음과 같이 decomposition 됨을 유의
+
+[R]* [3D 좌표] + [T]  
+
+     → (X',Y',Z') = [intrinsic]*[Rotation]*[3D 좌표] + [Translation]
+
+따라서 2D point to 3D point 공식은 다음과 같이 유도 됨
+
+     → [Rotation]^-1 * [intrinsic]^-1 * ((X', Y', Z') - [Translation]) = [X,Y,Z]

@@ -1,0 +1,7 @@
+1. Add memory and memory policy
+
+2. Add Tools
+
+3. Graph Node -> convert --> Dynamic Graph Node
+
+4. Graph vis --> Dynamic Graph vis

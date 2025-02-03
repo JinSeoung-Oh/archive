@@ -1,0 +1,73 @@
+개요
+GitHub - lucidrains/imagen-pytorch: Implementation of Imagen, Google's Text-to-Image Neural Network, in Pytorch
+
+Imagen: Text-to-Image Diffusion Models 
+
+구글에서 발표한 Text to image 모델로 Dall-e 2를 제치고 현재 SOTA인 모델
+
+구글은 해당 모델의 공식 weight를 제공하지 않음
+
+Imagen-pytorch는 기존에 dall-e 2 pytorch를 공개한 저자들이 imagen이 SOTA 모델이 되자 기존의 dall-e 2 pytorch 프로젝트를 접고 시작한 프로젝트임
+
+다만, 프로젝트가 시작된지가 오래 되지 않아 공개된 weight가 현재(2023.08.25) 기준으로 없음
+
+---------------------------------------------------------------------------------------------------
+모델 구조
+대형 LM(Transformer Language Models)의 텍스트 임베딩을 활용
+
+텍스트 임베딩을 위한 고정된 T5-XXL 인코더와 64x64, 256x256, 1024x1024 확산 모델로 구성
+
+Freezed pretrained encoders - T5-XXL 인코 사용
+
+Diffusion models and classifer-free guidance
+
+Large guidance wieghts samplers
+
+Static thresholding
+
+Dynamic thresholding
+
+Robust cascaded diffusion models (고 해상도 이미지 생성)
+
+Neural network architecture
+
+64 x 64 base model
+
+Improved DDPM의 U-Net의 베이스로 하고 확산 시간 단계 임베딩과 pooled text embedding을 조건으로 사용
+
+텍스트 조건화를 위한 cross-attention을 추가(텍스트 임베딩을 위한 Layer Normalization과 풀링 레이어 추가)
+
+256 x 256 초해상도 모델
+
+메모리 효율과 추론 속도 개선을 위해 수정된 Efficient U-Net 사용
+
+저해상도에서 더 많은 잔차 블록
+
+Skip connection을  1/√2로 스케일링
+
+다운샘플링과 업샘플링 블록 모두에 대해 컨볼루션과 크기 조정 순서를 반대로 함
+
+1024 x 1024
+
+속도 개선을 위해 self attention을 제거
+
+
+Classifier-free guidance 사용
+
+classifier-guidance
+
+diffusion model 이전의 생성 모델(GAN)에서는 Truncation or Low temperature sampling으로 diversity를 줄여 샘플의 퀄리티를 개선하였음
+
+하지만 diffusion model의 경우 이러한 방식이 적합하지 않아 고안 된 방법 (Diffusion Models Beat GANs on Image Synthesis)
+
+coinditional diffusion 모델의 학습 후 과정에서 샘플의 diversity와 fidelity를 trad-off 하는 방법
+
+샘플링 과정의 score 추정 함수 뒤에 gradient of the log likelihood of an auxiliary classifier model을 추가
+
+다만, classifier-guidance를 사용하기 위해서는 class에 대한 label이 필요하며, auxiliary model의 학습이 필요
+
+classifier-free guidance
+
+텍스트 조건에 의해 조건화 된 sample의 conditional likelihood에서 unconditional likelihood를 뺀 값을 늘리는 구조
+
+ 따라서 unconditioned 되는 경우도 학습을 시켜야함 → 파인튜닝을 하고자 한다면 데이터 셋에서 일부 이미지의 캡션을 랜덤하게 비워버리는 caption dropout 기능을 활용해야 함

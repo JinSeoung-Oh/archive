@@ -1,0 +1,36 @@
+개요
+원본 이미지 하나를 입력 값으로 주면 해당 이미지와 유사한 이미지 패턴을 보이는 이미지들을 생성해주는 기능 (unCLIP 기능 활용)
+https://github.com/Stability-AI/stablediffusion/blob/main/doc/UNCLIP.MD 
+
+Open 스크린샷 2023-08-24 오후 5.51.34.png
+
+image variation 결과 이미지
+위 이미지에서 가장 위에 있는 이미지와 하단의 첫 번째 이미지는 Stable diffusion model로 생성한 이미지이며, 하단의 2,3,4번째 이미지는 image variations 알고리즘이 적용되어 생성된 이미지
+
+unCLIP의 joint embedding space로 language-guided image manipulation이 가능함을 이용하는 model
+
+해당 코드가 Stable diffusion github에 공개가 되어 있어 코드 분석 진행 중
+
+한국어 번역 모델  + stable diffusion + image variations model을 적용하면 한국어 prompt로 유사한 이미지들을 생성해내는 것이 가능해 보임
+
+단, stable diffusion v2 (Latent diffusion model)에서 언급한 대로 생성된 모든 이미지들의 구도가 유사(Prompt 문제일 수도 있지만)하기 때문에 좀 더 다양한 이미지 생성에는 제약이 있을 것으로 보임
+
+모델 커스텀
+현재 github에 공개되어 있는 image variations 알고리즘은 stramlit으로 작성되어 있음
+
+Web에서 동작하도록 구현되어 있음
+
+따라서 해당 알고리즘이 local에서도 동작할 수 있도록 모듈 커스텀 완료
+
+prompt와 negative prompt는 아래와 같은 default 값으로만 테스트 진행
+
+Open 스크린샷 2023-10-11 오후 6.07.19.png
+
+ 
+
+Open 스크린샷 2023-10-11 오후 6.04.02.png
+
+원본 이미지
+Open 스크린샷 2023-10-11 오후 6.03.41.png
+
+결과 값 이미지

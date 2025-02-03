@@ -1,0 +1,38 @@
+GitHub - maudzung/Complex-YOLOv4-Pytorch: The PyTorch Implementation based on YOLOv4 of the paper: "Complex-YOLO: Real-time 3D Object Detection on Point Clouds" 
+
+GitHub - maudzung/SFA3D: Super Fast and Accurate 3D Object Detection based on 3D LiDAR Point Clouds (The PyTorch implementation) 
+
+GitHub - Xharlie/BtcDet: Behind the Curtain: Learning Occluded Shapes for 3D Object Detection 
+
+3D object detection model with 3D IOU
+3D object detection model은 3D point cloud에서 detection된 object를 2D image에 대하여 isomorphism의 한 종류인 homomorphism을 이용하여 3D to 2D projection을 하는 모델
+
+Homomorphism 
+
+ *두 개의 Group 사이의 모든 연산과 관계를 보존하는 Mapping이라고 이해하면 됨
+
+Homomorphism을 활용하면 2D to 3D projection 또한 가능하지만, 일부 2D image의 information을 잃어버리게 됨 (주로 Lane tracking -차선 트래킹 알고리즘에 사용)
+
+Open image-20220120-075859.png
+
+2D bbox와 3D bbox간의 관계
+ 
+
+3D object detection model에서는 최종적으로 3D point cloud에서 잡힌 object를 2D image projection 하기 때문에 2D IOU만을 적용하면 된다고 생각하기 쉬우나, 이는 train 과정에서는 유효하지만 inference 과정에서는 유효하지 않음
+
+3D object detection model의 inference 과정에서는 model이 가지고 있는 weight를 사용하여 New data에 obj가 있을 것이라 추정되는 위치에 predicted bbox를 생성하게 되는데, 이때 2D IOU를 사용 시 잘못 된 위치에 predicted bbox가 생성되는 케이스가 많음
+
+이러한 문제를 해결하기 위하여 최근의 3D object detection model들은 2D IOU가 아닌 3D IOU를 적용
+
+3D IOU를 적용하기 위해서 3D bbox의 뚜껑 부분에 해당되는 평행사변형의 각 꼭지점들을 corner라고 정의하고 예측된 bbox 와 Ground truth  bbox의 좌표 값으로부터 이 corner 값을 구한 뒤, 2D IOU 방식대로 IOU를 구함
+
+https://arxiv.org/pdf/2004.04962.pdf
+
+3D-IoU-Python/3D-IoU-Python.py at master · AlienCat-K/3D-IoU-Python 
+
+Model 구축 및 결과
+SFA3D model을 base로 하여 3D iou 구현 후, kitti dataset을 이용하여 학습 및 validation 진행
+
+학습 속도 및 inference의 정확도는 높아졌으나, iou 값이 형편 없이 낮게 나와 실제로 학습이 제대로 이루어져서 inference의 정확도가 높아진 것은 아니라고 판단 됨 (단순 우연으로 판단)
+
+3D iou 모듈을 좀 더 다듬고, dataset의 크기를 조금 더 늘리면 어느 정도 만족할 만한 수준의 3D object detection model을 만들 수도 있을 것이라고 생각 됨

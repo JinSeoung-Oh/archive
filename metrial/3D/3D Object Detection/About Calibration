@@ -1,0 +1,91 @@
+참고 : https://towardsdatascience.com/what-are-intrinsic-and-extrinsic-camera-parameters-in-computer-vision-7071b72fb8ec 
+
+Overview
+Calibration 정의 : Real world의 한 장면을 카메라로 찍었을 시 real world(world coordination system)의 장면이 카메라의 렌즈(camera or lens coordination system)를 거쳐 상(image or image plan coordination system)이 맺히게 되는데 이 3개의 좌표계를 물체 단위(target base calibration) or 장면 단위(targetless calibration)로 각각의 좌표계 상의 좌표를 일치 시키는 작업을 의미 
+Projection Matrix 정의 : Calibration 결과로 얻어진 결과 값 matrix로 각 좌표계 상의 점들의 관계식을 나타내는 매트릭스로 Projection matrix = [intrinsic matrix][extrinsic matrix]로 표현되며 이는 다시 Projection matrix = [intrinsic matrix ][rotation matrix | Translation matrix]로 표현이 됨. 이때, projection matrix로 얻어지는 값은 image plane 상의 값이 아닌 Camera 좌표계 상의 좌표이며 이 값을 다시 camera 좌표계와 image plane 상의 관계식에 대입하여 image plane 상의 좌표를 구하게 됨
+Intrinsic matrix는 카메라 내부 상태에 관한 matrix이며 Extrinsic matrix는 좌표계와 좌표계 사이의 관계식이기 때문에 보통 calibration을 한다는 것은 이  Extrinsic matrix를 구하는 과정으로 이해 될 수 있음
+
+-------------------------------------------------------------------------------------------
+[참고자료]  extrinsic matrix 만들 때 사용되는 개념 이해하기 
+Ray란?
+
+시작점(Origin), 방향(Direction)을 가지고, 시작점에서 정해진 방향으로 광선을 쏘는 것을 말합니다. Camera에서 한방향으로 광선을 쏘는 것을 말합니다.
+
+Ray로 할 수 있는 일?
+
+카메라에서 광선을 쏴서 어떤 물건을 바로보고 있는지, 유저가 클릭한게 무엇인지 알 수 있습니다.
+
+Ray로 광선을 쏘고, Ray를 따라가는 RayCasting으로 알아낼 수 있습니다.
+
+레이 캐스팅 (RayCasting)?
+
+Raycast는 '가상의 레이저빔!!'입니다. 
+
+해당 Ray를 따라서 충돌체(Collider)에 부딪힐 때까지 전송을 합니다.
+
+부딪힌 오브젝트에 대한 정보와 부딪힌 지점이 반환됩니다.
+
+예를 들어 생각한다면, 우리가 눈으로 보이는 것은 가시광선을 통해 맺힌 상을 보는 것과 똑같다고 생물시간에 배운것을 생각해보면 좋을 것 같습니다. 굴절현상…렌즈..뭐 그런내용들 기억나시죠…?ㅎㅎㅎㅎㅎ
+
+-------------------------------------------------------------------------------------------
+Camera Ray
+Open 스크린샷 2022-12-07 오후 5.51.47.png
+
+(X,Y,Z) 의 좌표의 나무가 3D , (u,v,1)의 작은 나무가 2D를 나타냄
+
+위 그림은 3D to 2D projection에서 사용되는 기본 개념과 동일
+
+(X,Y,Z)는 world coordinate system 상 위의 한 점이고, (x,y,1)은 camera coordinate system 상 위의 한 점, (u,v,1)은 image 혹은 사진 상의 한 점임
+
+f는 focal length를 의미하며 Z는 depth를 의미함
+
+따라서 Ray란 카메라 초점 위치(O)에서 어떤 방향(d)으로 t만큼 이동한 점들의 집합으로 정의 되며, 위 그림에서 빨간색 선과 파란색 선이 Ray에 해당하게 됨
+
+하나의 Ray는 하나의 픽셀 값을 정하게 되며 이 픽셀들이 모여(여러 Ray들이 모여서) projection 된 이미지가 생성 되게 됨
+
+만일 초점 위치(O)와 보는 방향(veiwing direction, d)가 정해지면 Ray 상 위의 좌표는 O + td로 계산 되게 됨
+
+-------------------------------------------------------------------------------------------
+Calibration의 2가지 방법
+Calibration을 하기 위한 기준점에 따라서 target based calibration와 targetless calibration으로 나누게 됨
+
+Open image-20221109-013113.png
+
+위 그림에서 회색 사각형으로 보이는 것은 camera임. 보통 pcd 데이터 수집 시(특히 자율 주행 시에), 여러 대의 카메라와 lidar 센서 & Ridar 센서를 사용하는데, 그것을 표현한 것이라고 이해하면 됨
+
+-------------------------------------------------------------------------------------------
+Target-based Calibration
+위 그림과 마찬가지로 하나의 pcd 상에 존재하는 여러 object 단위로 calibration을 진행하는 경우
+
+각각의 object를 기준으로 하였기 때문에 projection의 정확도가 매우 높으며, 상대적으로 Object 별로 명확 & 정확한 위치 및 물체의 진행 방향 model 예측에 유리함
+
+Object 단위로 Calibration이 이루어지기 때문에 비용 문제 발생
+
+Calibration 파일 내에 object 단위로 projection matrix가 정의 되어 있으면 Target-based calibration 방식으로 진행하였다고 판단 가능
+
+대표적인 예 : nuSence dataset
+
+만약 해당 데이터 셋을 저장하려면 형태는 다음과 같다.
+
+{pcd:0000.pcd, {object_1 : calib_1.txt, object_2: calib_2.txt…}, img:0000.png}
+-------------------------------------------------------------------------------------------
+Targetless Calibration
+하나의 pcd에 1개의 projection matrix만이 정의 되어있는 경우
+
+pcd 상의 특정 물체 or 점에 대해서만 Calibration 진행 (pcd 상의 대표적인 물체 및 카메라 위치 기반으로 진행 되는 것으로 파악됨)
+
+딱 1번만 Calibration을 진행하기 때문에 비용 문제는 발생하지 않음
+
+Object별로 Projection 진행 시에 오차가 발생하게 됨. 기준이 되는 object를 제외한 나머지 object의 명확 & 정확한 위치 및 물체의 진행 방향 예측이 매우 어려움
+
+기준이 되는 Object 및 point와 실제 Z측 방향으로 10m 이내만 정확도가 보장되며 그 이상의 경우 정확도가 급격하게 떨어지는 문제가 존재 → Z축 방향으로 10m 이내에 측정하고자 하는 모든 object가 있는 pcd에서만 model 예측에 유리하다는 의미
+
+최근 연구 트렌드를 보면 위와 같은 Targetless calibration의 단점을 해결 & 효율성을  높이기 위한 다양한 기술들이 연구되고 있으나 아직까지는 Target-based 방식보다는 정확도가 떨어지는 것으로 파악됨
+
+비용 문제 때문에 자체적인 Calibration 기술을 가지고 있지 않은 고객사의 경우 Targetless Calibration 파일을 전달해 줄 것으로 예상 됨
+
+대표적인 예 : KITTI dataset
+
+만약 해당 데이터 셋을 저장하려면 형태는 다음과 같다.
+
+{pcd: 'xxxx.pcd', calib: [xxxxx1, xxxxx2], image: [xxxxx1.jpg, xxxxx2.jpg]}

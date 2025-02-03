@@ -1,0 +1,73 @@
+Model inference 기준
+
+General input : Point cloud data, Calibration file
+
+1. Point cloud data format 
+   .pcd
+
+2. Calibration file
+보통 calibration 정보는 .txt 형식으로 제공 되지만 Raw data에서 추출해야 되는 경우도 존재함
+
+     → 추출의 경우 Raw data에 따라서 방법이 다르기 때문에 문제 발생 여지 있음
+
+calibration file은 보통 Projection matrix와 Rotation matrix로 구성
+
+간혹 Camera matrix(수집 기기 별 matrix)가 있는 경우도 있음
+
+아래는 일반적으로 calibration file에 존재하는 matrix만 기술
+
+--------------------------------------------------------------------------------
+Projection matrix
+3D point cloud 상의 점들을 camera space로 Projection 할 때 사용되는 matrix
+
+[u, v] = [Projection matrix][X,Y,Z] / [u,v] → camera space 상의 한 점
+
+camera space to 2D space의 경우 별개의 알고리즘을 사용해야함 (2D 좌표 추출을 위해서)
+
+따라서 camera space to 2D space의 알고리즘과 projection matrix의 관계식을 이용하면 3D space 상의 한 점과 2D sapce 상의 한 점(3D space 상의 한 점과 정확하게 1:1로 매칭되는 점)을 이용하여 Projection matrix를 구할 수 있고 이를 calibrate 이라고 함 
+
+Projection matrix = [Intrinsic matrix][extrinsic matrix]
+--------------------------------------------------------------------------------
+
+Intrinsic matrix
+보통 카메라 렌즈와 관련된 값으로 구성된 matrix
+
+Open image-20220927-073517.png
+
+f_x, f_y는 카메라 초점거리(focal length)
+
+c_x, c_y는 주점으로 카메라의 초점을 2D image 상에 수직으로 정사형 시킨 좌표 (보통 2D 이미지의 center 좌표로 보기는 하지만, 카메라 렌즈의 왜곡에 의해서 2D center point와 일치 하지 않을 가능성이 존재)
+
+skwe_cf_x의 경우 이미지 센서의 cell array가 어느 축으로 어느 만큼 기울여져 있느냐에 대한 값이지만, 최근 나온 카메라는 이 값이 0으로 고정 되어 있다고 봐도 무방
+
+Projection matrix로부터 Extrinsic matrix 정보를 추출하기 위해서는 해당 matrix가 필요
+
+Intrinsic matrix를 근사해서 구해주는 tool들이 존재한다고 하는데 테스트는 해보지 못 하였음
+
+----------------------------------------------------------------------------------
+Extrinsic matrix
+카메라 좌표계와 현실 좌표계 간의 관계를 나타내는 matrix [카메라 위치와 object의 위치, 그리고 현실 좌표계 정의에 따라서 그 값이 천차만별로 바뀜]
+
+따라서 Intrinsic matrix값을 알지 못 하면 Extrinsic matrix를 구할 수 없음
+
+Rotation matrix와 transformation matrix로 구성 되어 있음
+
+Extrinsic matrix = [Rotation matrix | transformation matrix]
+
+Open image-20220927-074604.png
+
+r_11, .. ,r_33이 Rotation matrix 값들이며 t_1, t_2, t_3가 transformation matrix 값들임
+
+Extrinsic matrix로 부터 Rotation matrix를 추출해 낼 수 있음 →  Extrinsic matrix의 [0,0], [0,1], … , [2,1],[2,2],[2,3]이 Rotation matrix
+
+----------------------------------------------------------------------------------
+Rotation matrix
+현실 좌표계와 카메라 좌표계의 회전에 관한 정보를 담고 있는 matrix
+
+하나의 object 혹은 다수의 object들이 x,y,z 축으로 얼마나 rotation 되어 있느냐에 대한 정보를 담고 있는 matrix(보통 하나의 object에 대한 값들을 가지고 있음)
+
+해당 matrix를 이용하여 Objective angle과 Rotated angle 값을 오일러 앵글, 쿼터니안으로 구할 수 있음
+
+----------------------------------------------------------------------------------
+Transformation matrix
+현실 좌표계와 카메라 좌표계의 평행 이동에 관한 정보를 담고 있는 matrix

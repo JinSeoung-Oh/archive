@@ -1,0 +1,116 @@
+개요
+학습에 사용되는 이미지 상에 존재하는 개인 정보(ex. 얼굴 & 차 번호)는 매우 예민한 문제
+
+이러한 개인 정보 중 특히 얼굴의 경우, 얼굴만 모자이크 및 블러 처리를 한다고 해도 체형 등의 문제가 여전히 존재
+
+Stable diffusion으로 세상에 존재하지 않는 사람의 이미지를 생성하고 이를 원본 이미지 상에 캐스팅하면 이러한 비식별화 문제가 해결 가능할 수도 있음
+
+ 
+
+방법
+Try 1. Stable diffusion
+stable diffusion v2 (Latent diffusion model) 
+
+Stable diffusion model로 2명 이상의 인물이 있을 시, 결과 값에 prompt가 제대로 반영 되지 않음
+
+Stable diffusion model에서 prompt를 korean으로 주면 여자는 중국 여성으로, 남성은 일본 남성으로 생성됨
+
+Big and round eyes를 prompt로 주면 눈이 망가지거나 아니면 여전히 눈이 옆으로 째진 모습으로 생성
+
+인종 및 국가에 대한 prompt를 주지 않을 시에 기본적으로 서양인으로 이미지가 생성
+
+동양인을 prompt로 넣으면 인종 차별적인 결과 값이 생성
+
+prompt로 어느 정도 한국인 느낌이 나게끔 할 수 있으나 여전히 여성은 중국인 / 남성은 일본인 느낌이 강함
+
+Object 뿐만 아니라 배경도 생성 됨
+
+생성된 이미지 상의 Object 크기와 비식별화 해야 하는 이미지 상의 Object의 크기가 상이하게 다른 케이스가 있어 캐스팅 방식이 맞지 않음
+
+Try 2. Stable diffusion with Dream-booth
+개요
+
+Dream-booth를 이용하여 custom data에 대한 학습 후, 학습된 인물의 이미지를 다양한 prompt 조합으로 생성
+
+Dream booth with stable diffusion 
+
+그 후 생성된 이미지를 원본 이미지에 캐스팅
+
+문제점
+
+기본적으로 오버피팅을 시켜서 학습을 시켜야 하는 만큼, custom dataset에 존재하는 pose와 position에 맞는 이미지만 생성이 가능
+
+이미지 상에 존재하는 모든 인물들이 같은 pose와 position으로 생성
+
+똑같은 pose : 예를 들어 팔짱을 끼고 45도 각도로 틀어져 있는 이미지를 학습 시켰다고 하면 비식별화를 해야 하는 이미지 상의 모든 인물들이 팔짱 끼고 45도로 틀어져 있다는 의미
+
+똑같은 position : 만약 학습에 사용된 이미지 상에서 인물이 중앙에 존재한다면, 생성된 이미지 상에 존재하는 인물들 역시 모두 이미지의 중앙에 생성된다는 의미 → 비식별화를 해야 되는 이미지 상에 인물이 오른쪽 구석 & 왼쪽 구석에 존재한다해도 무조건 중앙에만 생성된다는 의미
+
+이 경우, 비식별화가 아니라 그냥 새로운 이미지를 생성한 것에 불과함
+
+Stable diffusion 사용 시, 인물 뿐만 아니라 배경 또한 생성 되기 때문에 이걸 그대로 사용하는 것은 de-identification이라고 보기에는 문제가 많음 (비식별화가 아니라 그냥 새로운 데이터를 생성한 것일 뿐임)
+
+Stable diffusion으로 생성된 이미지에서 생성된 object만 잘라서 캐스팅 한다 하더라도 이미지의 크기가 맞지 않아서 불가능한 경우가 더 많았음 → 학습에 사용된 이미지 상의 object 크기보다 조금 or 1.5배 정도 크게 이미지가 생성 되기 때문에 비식별화 해야 하는 이미지 상의 object보다 그 크기가 더 큰 경우가 많음
+
+얼굴 부분만 잘라서 생성하는 방법의 경우, 이미지의 크기가 너무 작을 때에는 생성 자체가 제대로 되지 않았음
+
+Open 스크린샷 2023-09-27 오후 5.08.11.png
+
+원본 이미지
+Open 스크린샷 2023-10-04 오전 9.20.18.png
+
+생성된 이미지
+ 
+
+Try 3. Stable diffusion with depth
+개요
+
+주어진 이미지 상의 인물의 pose 및 position에 맞게 prompt로 object 생성이 가능
+
+우연이라도 세상에 존재하는 인물이 생성되면 안 되기 때문에 Cartoon & animation을 prompt 입력 값으로 하였음
+
+생성된 Object는 random face로 생성 됨
+
+
+Open 스크린샷 2023-09-27 오전 10.49.50.png
+
+원본 이미지
+ 
+
+Open 스크린샷 2023-10-04 오전 9.17.30.png
+
+생성된 이미지
+다만, 배경까지 생성 되기 때문에 face 비식별화라기보다는 그냥 새로운 데이터를 만든 것임
+
+따라서 Yolov8로 사람을 detection 한 뒤, 해당 object들을 crop
+
+crop 된 이미지를 SD-depth model에 넣어 이미지 생성 한 뒤, 생성된 이미지를 원본 이미지 상에 캐스팅
+
+Open 스크린샷 2023-10-04 오전 9.17.39.png
+
+위 이미지 역시 Object가 존재하는 box 상에서는 만들어진 배경이 존재..
+
+원본 상의 object 크기(ex. 원본 이미지의 이말년 작가)와 생성된 이미지 상의 object의 크기가 가로/세로 약 10픽셀 정도 씩 차이가 존재하기 때문에 segmentation으로 crop해서 캐스팅 할 경우 원본 얼굴과 생성된 얼굴이 살짝 겹쳐 보임
+
+Face detection으로 얼굴 부분만 대충 가져와서 casting 하면 ‘얼굴’만 비식별화가 어느정도 가능할 것으로 보임 (얼굴 주변에 배경이 상이한 것은 어쩔 수 없을 것으로 보임)
+
+다만 이 경우, 체형에 대한 문제가 존재 하기 때문에 그 부분은 따로 고민해 봐야 할 것으로 보임
+
+Try 4. Stable diffusion with depth & yolov8-face
+개요
+
+Stable diffusion with depth 모델이 인물의 얼굴 뿐만 아니라 인물의 배경까지 바꿔지기 때문에 얼굴만 바꾸기 위하여 yolov8-face model 커스텀 진행 후, Stable diffusion with depth 모델과 연동
+
+yolov8-face model 커스텀을 위한 base templat 작성 및 적용 완료
+
+Open 스크린샷 2023-10-06 오후 3.59.03.png
+
+yolov8-face model이 얼굴을 너무 타이트하게 잡기 때문에 완벽하게 casting이 되지 않는 문제는 있음
+
+현재 버전에서는 human detection에 Yolov8 모델을, 얼굴 영역만 잡는데 Yolov8-face 모델을 사용
+
+Yolov8과 Yolov8-face가 서로 호환되지 않는 문제로 인하여 yolov8 model과 yolov8-face model은 서로 독립된 가상 환경 안에서 실행 되어야 함
+
+호환 문제 해결을 위하여 이것저것 시도해보았으나 현재로서는 호환 문제가 해결이 되지 않았음
+
+Human detection model의 경우 Yolov8 외에 다른 모델들을 실험해 보았으나, In the wild data에 대해서 Yolov8 만큼의 성능을 보여주지 못 하여 우선은 Yolov8을 사용하고 추후 다른 모델로 바꾸면 같은 가상 환경 내에서 얼굴 비식별화가 가능할 것으로 보임

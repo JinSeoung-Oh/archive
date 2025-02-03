@@ -1,0 +1,201 @@
+정의
+Euler's rotation theorem & Quaternions rotation 
+
+https://www.weizmann.ac.il/sci-tea/benari/sites/sci-tea.benari/files/uploads/softwareAndLearningMaterials/quaternion-tutorial-2-0-1.pdf
+
+Maths - Axis Angle to Quaternion - Martin Baker 
+
+Quaternions : 짐벌락 현상을 해결하기 위하여 만들어진 것으로 오일러 공식을 활용하면 복소수를 삼각함수로 표현이 가능하다는 점을 이용하여 만들어진 방법. 3개의 축에 허수 축을 추가했기 때문에 Quaternions(사원수)라고 명명되었음
+
+*direction vector는 방향 값만 가지고 있기 때문에(rotation에 대한 정보가 없기 때문에) rotation value인 quaternions을 구할 수 없음
+
+*주어진 정보로부터 쿼터니안을 구할 수 있는 ‘수학식 만’ 정리하였음
+
+*미분 방정식 / 미분 기하 / 허수 공간 등의 내용들은 모두 제외
+
+Method 1) 오일러 각도가 주어졌을 때 (yaw, pitch and roll)
+Quaternions = [qx,qy,qz,qw]로 표현 됨 (qx → quaternions x)
+
+Given yaw, pitch and roll (특정 objcet에 대해서
+
+qx = sin(roll/2)*cos(pitch/2)*cos(yaw/2)-cos(roll/2)*sin(pitch/2)*sin(yaw/2)
+
+qy = cos(roll/2)*sin(pitch/2)*cos(yaw/2)+sin(roll/2)*cos(pitch/2)*sin(yaw/2)
+
+qz = cos(roll/2)*cos(pitch/2)*sin(yaw/2)-sin(roll/2)*sin(pitch/2)*cos(yaw/2)
+
+qw = cos(roll/2)*cos(pitch/2)*cos(yaw/2)+sin(roll/2)*sin(pitch/2)*sin(yaw/2)
+
+python 코드
+
+
+
+import numpy as np
+def get_quaternion_from_ratated_alngle(pitch,roll,yaw):
+    qx = np.sin(roll/2)*np.cos(pitch/2)*np.cos(yaw/2) - np.cos(roll/2)*np.sin(pitch/2)*np.sin(yaw/2)
+    qy = np.cos(roll/2)*np.sin(pitch/2)*np.cos(yaw/2) + np.sin(roll/2)*np.cos(pitch/2)*np.sin(yaw/2)
+    qz = np.cos(roll/2)*np.cos(pitch/2)*np.sin(yaw/2) - np.sin(roll/2)*np.sin(pitch/2)*np.cos(yaw/2)
+    qw = np.cos(roll/2)*np.cos(pitch/2)*np.cos(yaw/2) + np.sin(roll/2)*np.sin(pitch/2)*np.sin(yaw/2)
+    return [qx, qy, qz, qw]
+Method 2) Rotation matrix가 주어졌을 때
+*Rotation Matrix는 3x3의 정방행렬로 주어짐
+
+조건 1. Rotation matrix가 orthogonal matrix여야 함
+
+Open image-20220919-004159.png
+
+조건 2. det(Rotation matrix) = +- 1인 경우
+
+Open image-20220919-004312.png
+
+조건 3. qw > 0 → 아래 qw를 구하는 식에서 m[0,0]과 m[1,1] 그리고 m[2,2]는 주어진 Rotation matrix의 주대각선 원소의 합 /  다시 말해서 주어진 Rotation matrix의 주대각선의 합 + 1 이 non-zero여야 한다는 의미
+
+ 
+
+qw = root(1+m[0,0] + m[1,1] + m[2,2]) /2  s.t 1+m[0,0] + m[1,1] + m[2,2] is non-zero
+
+qx = (m[2,1]-m[1,2])/(4*qw)
+
+qy = (m[0,2]-m[2,0])/(4*qw)
+
+qz = (m[1,0] -m[0,1])/(4*qw)
+
+python 코드
+
+
+
+#테스트 진행 중인 코드
+import numpy as np
+import argparse
+def parse_arg():
+    parser = argparse.ArgumentParser(description='get Quaternions from rotated matrix')
+    parser.add_argument('--matrixdata', action='store', type=float, nargs='+', help = 'enter your matrx value. Order is [0,0], ... , [0,m], ... [n,1], .. [n,m] --> ex) 1 2 ... m')
+    parser.add_argument('--nrows', action='store', type=int, help='number of row')
+    args = parser.parse_args()
+    return args
+def get_matrix(args):
+    m = np.array(args.matrixdata).reshape((args.nrows, len(args.matrixdata)//args.nrows))
+    return m
+def deter_3(matrix):
+    a = np.array([[matrix[0,0], matrix[0,1], matrix[0,2]], [[matrix[1,0], matrix[1,1], matrix[1,2]], [[matrix[2,0], matrix[2,1],matrix[2,2]]])
+    d = np.linalg.det(a)
+    return d
+def inv_3d(matrix):
+    a = np.array([[matrix[0,0], matrix[0,1], matrix[0,2]], [[matrix[1,0], matrix[1,1], matrix[1,2]], [[matrix[2,0], matrix[2,1],matrix[2,2]]])
+    inv_array = np.linalg.inv(a)
+    return inv_array
+def possible(marix):
+    sum = marix[0,0] + matrix[1,1] + matrix[2,2]
+    if sum+1 > 0:
+       possi = 'True'
+    else:
+       possi = 'False'
+    return possi
+def main():
+    args = parse_arg()
+    matrix = get_matrix(args)
+    determinant = deter_3(matrix)
+    if determinant = +1 or determinant = -1:
+       inv = inv_3d(matrix)
+       a = np.array([[matrix[0,0], matrix[0,1], matrix[0,2]], [[matrix[1,0], matrix[1,1], matrix[1,2]], [[matrix[2,0], matrix[2,1],matrix[2,2]]])
+       trans = np.transpose(a)
+       if inv == trans:
+          possibility = possible(marix)
+          if possibility == True:
+             qw = np.sqrt(1+m[0,0] + m[1,1] + m[2,2]) / 2
+             qx = (m[2,1]-m[1,2])/(4*qw)
+             qy = (m[0,2]-m[2,0])/(4*qw)
+             qz = (m[1,0] -m[0,1])/(4*qw)
+          else:
+               print('denominator is not zero')
+       else:
+            print('This matrix is not orthogonal matrix')
+    else:
+         print('determinant is not +1 or -1')
+    Quaternions = [qw, qx, qy, qz]
+    retrun print('quaternions is:' Quaternions)
+if __name__ == '__main__':
+   main()
+Another way
+아래의 알고리즘은 추가 확인이 필요 (계산량이 위의 방식 보다 훨씬 적음)
+
+quaternion.w = sqrt(max(0,1+m[0,0]+m[1,1]+m[2,2]))/2
+
+quaternion.x = sqrt(max(0, 1+m[0,0] -m[1,1]-m[2,2]))/2
+
+quaternion.y = sqrt(max(0, 1-m[0,0]+m[1,1]-m[2,2]))/2
+
+quaternion.z = sqrt(max(0, 1-m[0,0]-m[1,1]+m[2,2]))/2
+
+ 
+
+quaternion.x  = _copysign(quaternion.x , m[2,1]-m[1,2])
+
+quaternion.y = _copysign(quaternion.y, m[0,2]-m[2,0])
+
+quaternion.z = _copysign(quaternion.z, m[1,0]-m[0,1)]
+
+ 
+
+*copysign : 주어진 변수 x,y에 대하여 x의 값에 y의 부호를 사용하는 변수를 의미
+
+ex) x =  copysign(5.84, -1.2) =
+
+     print(x) 
+
+     -5.84
+
+python 코드
+
+
+
+import numpy
+import math
+def get_quaternion(matrix):_
+    qu_w = np.sqrt(max(0, 1+m[0,0]+m[1,1]+m[2,2]))/2
+    qu_x = np.sqrt(max(0, 1+m[0,0]-m[1,1]-m[2,2]))/2
+    qu_y = np.sqrt(max(0, 1-m[0,0]+m[1,1]-m[2,2]))/2
+    qu_z = np.sqrt(max(0, 1-m[0,0]-m[1,1]+m[2,2]))/2
+    quaternion_x = math.copysign(qu_x, m[2,1]-m[1,2])
+    quaternion_y = math.copysign(qu_y, m[0,2]-m[2,0])
+    quaternion_z = math.copysign(qu_z, m[1,0]-m[0,1])
+    quaternion = [qu_w, quaternion_x, quaternion_y, quaternion_z]
+    return quaternion
+Method 3) Extrinsic matrix가 주어졌을 때
+https://ori.codes/artificial-intelligence/camera-calibration/camera-distortions/ 
+
+Understanding Lens Distortion | LearnOpenCV # 
+
+아래 그림을 보면 projection matrix는 K(intrinsic matrix)와 [R|t](Extrinsic matrix)의 matmul 연산을 통해 얻어지게 됨
+
+여기서 Extrinsic matrix [R|t]에서 R이 rotation matrix이고 t는 transformation matrix임
+
+Open image-20220921-054018.png
+
+lens distortion이 고려 되지 않은 pinhole model의 경우 rotation matrix는 extrinsic parameters(extrinsic matrix)를 통해서 구해질 수 있음
+
+lens distortion을 고려하기 위해서는 camera distortion matrix를 아래와 같이 추가 시켜 주면 됨
+
+Open image-20220921-060852.png
+
+위 계산 과정은 opencv2에서 calibration을 구하는 모듈의 계산식임
+
+위의 계산 과정에서 유추 할 수 있듯, lens distortion은 projection matrix 계산 과정에서 extrinsic matrix와의 연산 후에 intrinsic matrix와의 연산 중에 고려 되기 때문에 lens distortion을 고려 하더라도 rotation matrix는 Extrinsic matrix를 통해서 구할 수 있음 [혹시 몰라 추가적인 확인 중]
+
+따라서 extrinsic matrix를 통해서 rotation matrix를 구하면 Method 2를 통해서 구하거나 or rotation matrix로부터 yaw,roll,pitch 값을 구해서 method 1을 통해서 쿼터니언을 구할 수 있음
+
+Method 4) Rotation matrix나 오일러 각도가 주어지지 않았을 때 – 테스트 필요
+3D point cloud 작업 시에 Rotation matrix가 주어지지 않는 경우는 거의 없으나, 만약 주어지지 않았을 시를 대비하여 고안한 방법 → 따라서 추가적인 테스트가 반복적으로 필요한 방법임
+
+BEV map으로부터 Camera_position, Object_center, Object_front의 좌표가 각각 주어졌을 경우 Yaw값 + alpha 값 구하는 코드(추가 테스트 후 수정 필요) 
+
+위의 방식 대로 rotated angle 값들을 구한 뒤, rotated angle들 간의 관계식을 이용하여 yaw, pitch and roll을 구한 다음 Method 1)의 방식을 따라 가는 방법 
+
+Axis angle to quaternion 
+https://gamedev.stackexchange.com/questions/149006/direction-vector-to-quaternion
+
+Open image-20220921-014415.png
+
+아래 링크에서 위의 공식을 사용한 것이 발견되어 해당 내용 관련해서 리서치 진행 중
+
+fast-point-cloud-cuboid-labeling (neSences) : Google Colab 

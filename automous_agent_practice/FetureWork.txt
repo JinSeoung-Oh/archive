@@ -1,4 +1,6 @@
 1. Add memory and memory policy
+   https://github.com/evandiewald/fantasy-football-agent/blob/main/fantasy_chatbot/chatbot.py
+   And Langgraph has memory class. Have to check it
 
 2. Add Tools
 

@@ -1,0 +1,68 @@
+*일반적으로 yaw는 z-axis에 대한 회전 각도이지만 KTTI dataset의 default format은 Left hand coordinate system을 다루기 때문에 KITTI dataset에서의 yaw 값은 Y-axis에 대한 회전 각도 → 따라서 KITTI dataset에서 right hand coordinate system을 다루기 위해서는 yaw_rhcs = rot_z = -rot_y - pi/2를 대입하여 yaw 값을 z-axis에 대한 회전 각도로 바꿔줘야 함 [추가 확인 필요] → right hand coordinate system 상에서는 Left hand coordinate system과 다르게 모든 yaw 값이 양수이기 때문에 만약 - 값이 나오면 -를 곱해주면 될 것으로 보임 / KITTI DATASET에서 training 000000.txt(label 파일)에서 roll 값이 0.01로 되어 있음. 기본적으로 KITTI DATASET의 labeling은 left hand coordinate system이기 때문에 이를 right hand coordinate system으로 전환하면 -1.58의 값이 나오는데 이를 양수로 변환하면 1.58 Radian 이 되고 이를 degree로 바꾸면 90.52733이 되는데 000000.png를 보면 사람이 카메라와 거의 수평으로 걷고 있기 때문에 맞는 것으로 보임 
+
+→ Roll 기준이 아닌 Yaw 기준으로 보는 이유는 BEV상에서 물체의 이동방향을 보기 위해서임 
+
+Yaw, Pitch, and Roll의 정의
+Open image-20220818-060957.png
+
+Yaw, Pitch and Roll
+기준이 되는 X,Y,Z축은 Global X,Y,Z 축임
+
+Yaw는 Z축을 기준으로 물체가 얼마나 기울여져 있는가(회전해 있는가) → 3D point cloud 상에서는 대부분 해당 값을 이용하여 object의 방향을 추정
+
+Roll은 X축을 기준으로 물체가 얼마나 기울여져 있는가(회전해 있는가)
+
+Pitch는 Y축을 기준으로 물체가 얼마나 기울여져 있는가(회전해있는가)
+
+Open image-20220818-060553.png
+
+pitch, roll, yaw 공식
+ 
+
+참고 : global yaw and local yaw의 관계성을 이용하여 물체의 방향을 추정하기도 하는데 해당 경우는 Monocluar 3D object detection task에서 주로 사용하는 방법 → Monocluar 3D object detection task는 2D image 상에서 3D voxel 구조를 추정하는 task를 의미함 
+
+     Monocular 3D Object Detection 에서의 Orientation Estimation (방향 추정) 
+
+ 
+
+Yaw, Pitch, and Roll 구하기
+Yaw는 3D point 상에서 heading이라는 용어로 사용됨
+
+https://mmdetection3d.readthedocs.io/en/latest/tutorials/coord_sys_tutorial.html  – 필독
+
+Open image-20220818-073536.png
+
+Real-world(LiDAR)의 상은 카메라에서는 뒤집혀서 맺히기 때문에 LiDAR와 Camera의 좌표계는 서로 뒤집어져 있음
+
+Box dir == direction vector
+
+direction vector가 주어질 때 아래 링크의 코드를 따라 가면 yaw와 pitch를 구할 수 있음
+
+Radian 값과 Object direction 과의 관계 
+
+참고 : How do I calculate the yaw, pitch, and roll of a point in 3D? -  – 복잡한 내용이기 때문에 요약글 말고 원본 링크 첨부
+
+Rotation matrix(R)가 주어졌을 경우
+
+Yaw = atan2(R(2,1), R(1,1))
+
+Pitch = atan2(-R(3,1), sqrt(R(3,2)^2+R(3,3)^2)))
+
+roll = atan2(R(3,2), R(3,3))
+
+ 
+
+Convert Euler angles to direction vector
+주어진 or 구해진 Yaw, Pitch and roll은 회전 각도 (단위 : radian)
+
+이 각도 값들을 direction vector로 변환 할 수 있는데 해당 공식은 다음과 같음
+
+X = cos(yaw) * cos(pitch)
+
+Y = sin(yaw) * cos(pitch)
+
+Z = sin(pitch)
+
+direction vector = (X,Y,Z)
+
+참고 :  direction vector란 보통 크기가 1이면서 방향”만”을 나타내는 벡터

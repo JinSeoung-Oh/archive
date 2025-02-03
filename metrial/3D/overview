@@ -1,0 +1,31 @@
+3D object detection point cloud data set 
+https://gaussian37.github.io/vision-concept-calibration/
+
+2D image data (raw data)
+
+Velodyne point cloud data (Velodyne은 라이다 제품 명)
+
+https://info.vercator.com/blog/lidar-vs-point-clouds 
+
+Label data (bbox 좌표 및 class가 명시 되어 있는 data set)
+
+calibration matrices data (camera의 intrinsic, extrinsic value가 저장되어 있음)
+
+     → 2D bbox를 3D bbox로 변환 하거나 BEV의 결과 값을 2D image로 Projection을 하는데 필요한 데이터
+
+[Stereo Vision] 카메라 캘리브레이션의 내부 및 외부 매개변수(intrinsic, extrinsic parameters) 
+
+www.cs.cmu.edu/~16385/s17/Slides/11.1_Camera_matrix.pdf
+
+OpenCV: Camera Calibration 
+
+Camera Calibration and 3D Reconstruction — OpenCV 2.4.13.7 documentation 
+
+ 
+
+3D point cloud(BEV map)에서 object를 detection 한 뒤에 이를 수학적 isomorphism을 이용하여 2D image에 projection 하는 방식을 주로 취함
+
+*수학적 isomorphism
+두 수학적 구조가 ‘본질적으로 같은 구조’를 가진다고 말할 수 있을 때, 그 둘을 이어주는 일대일 대응 관계(=전단사 함수)를 의미
+두 구조 𝐴와 𝐵 사이에 어떤 함수 𝑓가 존재하여, 그 함수가 구조를 보존하며 전단사(1대1 대응)라면 𝐴와 𝐵는 동형임
+“구조를 보존한다”는 말은, 원소 사이의 연산(덧셈, 곱셈 등)이나 관계(인접성, 순서 등)가 함수 𝑓 를 통해서도 그 성질이 유지된다는 뜻

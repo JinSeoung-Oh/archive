@@ -1,0 +1,10 @@
+https://ori.codes/artificial-intelligence/camera-calibration/camera-distortions/ 
+
+OpenCV: Camera Calibration 
+
+Open 4B45A8A6-4B04-4933-87A2-C46DF7850858.jpeg
+
+Distortioncoefficients=(k1, k2, p1, p2, k3) ← 5개 파라미터 일 경우
+
+OpenCV에서는 6개의 radial distortion coefficients(𝑘1, , 𝑘2, 𝑘3, 𝑘4, 𝑘5, 𝑘6)와 2개의 tangential distortion coefficients(𝑝1, 𝑝2)를 이용하여 왜곡을 제거
+

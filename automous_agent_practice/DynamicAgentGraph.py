@@ -1,77 +1,108 @@
-from typing import Dict, List
-from langgraph.graph import Graph, StateGraph
-from langgraph.prebuilt import ToolExecutor
-from queue import Queue
-import asyncio
+from typing import Dict, List, Optional
+from pydantic import BaseModel, Field
+from langgraph.graph import StateGraph, END
+from langchain.schema import SystemMessage, HumanMessage
 
-class DynamicAgentGraph:
-    def __init__(self):
-        self.agent_queue = Queue()
-        self.graph = StateGraph()
-        self.agents = {}
+class DynamicStateGraph:
+    def __init__(self, state_class: Type[BaseModel]):
+        self.graph = StateGraph(state_class)
+        self.agents = {}  # 생성된 Agent 저장
+        self._initialize_base_graph()
         
-    async def create_agent_node(self, agent_info):
-        """새로운 Agent 노드를 생성하고 그래프에 추가"""
-        agent_id = agent_info['id']
+    def _initialize_base_graph(self):
+        """기본 그래프 구조 초기화"""
+        self.graph.add_node("orchestrator", orchestrator)
+        self.graph.add_node("router", self.dynamic_router)
+        self.graph.add_node("agent_completed", agent_completed)
         
-        # Agent 노드 생성
-        async def agent_node(state):
-            # Agent의 실제 처리 로직
-            return state
+        # 기본 엣지 설정
+        self.graph.set_entry_point("orchestrator")
+        self.graph.add_conditional_edges(
+            "orchestrator",
+            lambda state: "router" if not state.task_complete else END
+        )
+        self.graph.add_edge("router", "agent_completed")
+        self.graph.add_conditional_edges(
+            "agent_completed",
+            lambda state: "router" if not state.subtask_complete else "orchestrator"
+        )
+    
+    async def create_agent_node(self, agent_info: Dict):
+        """동적으로 Agent 노드 생성"""
+        agent_name = agent_info['Agent']
+        
+        if agent_name not in self.agents:
+            llm_agent = LLMAgent(
+                agent_info['Agent'],
+                agent_info['prompt'],
+                agent_info['Role'],
+                agent_info['tools']
+            )
             
-        # 그래프에 새 노드 추가
-        self.graph.add_node(agent_id, agent_node)
-        self.agents[agent_id] = agent_info
-        
-        # 이전 노드와 연결 (필요한 경우)
-        if agent_info.get('previous_agent'):
-            self.graph.add_edge(agent_info['previous_agent'], agent_id)
+            # Agent 노드 함수 생성
+            async def agent_node(state):
+                return await DynamicAgent_response(llm_agent, state.llm, state)
             
-        return agent_id
+            # 그래프에 노드 추가
+            self.graph.add_node(agent_name, agent_node)
+            self.agents[agent_name] = llm_agent
+            
+            # 라우터와 agent_completed 노드 사이에 새 엣지 추가
+            self.graph.add_edge(agent_name, "agent_completed")
+    
+    async def dynamic_router(self, state):
+        """동적 라우팅 로직"""
+        agent_type = state.next_agent
+        
+        if agent_type not in self.agents:
+            # Agent 정보 찾기
+            agent_info = next(
+                (agent for agent in state.available_agents 
+                 if agent['Agent'] == agent_type),
+                None
+            )
+            
+            if agent_info:
+                # 새 Agent 노드 생성
+                await self.create_agent_node(agent_info)
+        
+        # Agent 노드로 라우팅
+        if agent_type in self.graph.nodes:
+            return agent_type
+            
+        return "agent_completed"
+    
+    def compile(self):
+        """그래프 컴파일"""
+        return self.graph.compile()
 
-    async def process_queue(self):
-        """큐에서 Agent 정보를 가져와 노드 생성"""
-        while not self.agent_queue.empty():
-            agent_info = self.agent_queue.get()
-            await self.create_agent_node(agent_info)
-            
-    def add_agent_to_queue(self, agent_info: Dict):
-        """새로운 Agent를 큐에 추가"""
-        self.agent_queue.put(agent_info)
-        
-    async def run_graph(self, initial_state: Dict):
-        """그래프 실행"""
-        # 큐에 있는 모든 Agent 처리
-        await self.process_queue()
-        
-        # 그래프 컴파일 및 실행
-        app = self.graph.compile()
-        return await app.ainvoke(initial_state)
+# State 클래스 확장
+class EnhancedState(State):
+    available_agents: List[Dict] = Field(default_factory=list)
+    llm: Any = None  # LLM 인스턴스 저장
 
 # 사용 예시
 async def main():
-    dynamic_graph = DynamicAgentGraph()
-    
-    # Agent 정보를 큐에 추가
-    dynamic_graph.add_agent_to_queue({
-        'id': 'agent1',
-        'previous_agent': None,
-        'config': {'type': 'processor'}
-    })
-    
-    dynamic_graph.add_agent_to_queue({
-        'id': 'agent2',
-        'previous_agent': 'agent1',
-        'config': {'type': 'analyzer'}
-    })
+    # 동적 그래프 초기화
+    dynamic_graph = DynamicStateGraph(EnhancedState)
     
     # 초기 상태 설정
-    initial_state = {"message": "시작 메시지"}
+    initial_state = EnhancedState(
+        subtasks=[
+            Subtask(
+                question="What is the capital of France?",
+                agents=["Researcher", "Writer"],
+                context="Need information about France"
+            )
+        ],
+        available_agents=flattened_sys_msg_list,  # Agent 정보 목록
+        llm=llm  # LLM 인스턴스
+    )
     
-    # 그래프 실행
-    result = await dynamic_graph.run_graph(initial_state)
+    # 그래프 컴파일 및 실행
+    chain = dynamic_graph.compile()
+    result = await chain.ainvoke(initial_state)
     return result
 
-# 실행
 if __name__ == "__main__":
     asyncio.run(main())

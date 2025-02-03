@@ -1,0 +1,99 @@
+개요
+Dalle2-pytorch github : GitHub - lucidrains/DALLE2-pytorch: Implementation of DALL-E 2, OpenAI's updated text-to-image synthesis neural network,  in Pytorch 
+
+Dalle2-laion github : GitHub - LAION-AI/dalle2-laion: Pretrained Dalle2 from laion 
+
+Dalle2 model을 pytorch로 동작하게끔 만든 프로젝트로 저자들이 제공하는 pretrained model을 사용하려면 Dalle2-laion 코드를 사용하면 됨
+
+Imagen이 SOTA 모델이 됨에 따라 프로젝트 인원들이 모두 Imagen 쪽으로 옮겨가 버전 관리가 제대로 되어 있지 않음
+
+모델 구조
+Open 스크린샷 2023-08-25 오전 11.00.35.png
+
+2-stage model
+
+prior : 텍스트로 CLIP image embedding을 생성
+
+decoder : prior의 image embedding을 condition으로 받아, diffusion model로 이미지 생성
+
+CLIP의 joint embedding space로 language-guided image manipulation 가능
+
+위 이미지와 같은 모델 구조(full text-conditional image generation stack)을 unCLIP이라고 명명
+
+위 그림에서 점선 윗 부분은 CLIP 학습 과정
+
+text-image의 joint representation space를 학습
+
+위 그림에서 점선 아래 부분이 text-to-image 생성 과정
+
+CLIP의 text encoder에서 나온 text embedding을 prior에 널어 image embedding todtjd
+
+생성된 image embedding과 캡션을 이용해 decoder가 최종 이미지를 생성
+
+학습 시 CLIP model만 frozen
+
+Prior stage
+
+Autoregressive(AR) prior
+
+텍스트 y를 discrete code의 시퀀스로 변환하여 CLIP image embedding z_i 형성, autoregressively 예측
+
+Transformer text encoder(width 2024, 24 blocks), decoder(causal attention mask,  width 1664, 24 blocks)
+
+PCA를 적용하여 z_i의 dimensionality를 줄임
+
+CLIP을 SAM optimizer로 학습하여 representation space의 rank를 줄임
+
+PCA 적용 후, 319의 디멘션을 1024개의 discrete buckets에 quantize
+
+Diffusion prior
+
+continuous vector z를 캡션 y에 대하여 condition으로 주어진 Gaussia diffusion model을 통해 재구성
+
+Decoder-only Transformer(with a causal attention mask, with 2048, 24 block)
+
+Encoded text → CLIP text embedding → an embedding for the diffusion times, noisednCLIP image embedding → a final embedding 
+
+sampling model : Analytic DPM with 64 strided sampling steps
+
+샘플링 시 두개의 z_i 생성하고, z_t와 내적이 높은 샘플 선택(유사도가 높은 샘플을 선택한다는 의미)
+
+Decoder stage
+
+diffusion model 사용
+
+prior로 만든 CLIP image embedding을 condition으로 받아 image 생성
+
+GLIDE 3.58B 모델 수정
+
+timestep embedding에 CLIP embedding을 projecting & adding
+
+CLIP embedding을 4개의 추가 tokens로 projection 한 후에 이를 GLIDE text encoder의 출력 시퀀스에 concat
+
+고해상도 이미지를 생성하기 위해 2개의 diffusion upsampler model(ADMNet) 학습
+
+64 x 64 → 256 x 256 
+
+27 sampling steps
+
+256 x 256 → 1024 x 1024
+
+ 15 sampling steps
+
+학습하는 동안 첫 번째 upsampling stage에서는 gaussian blur로 이미지를 corrupt
+
+두 번째 stage에서는 BSR degradation으로 corrupt 적용
+
+Dalle2-laion 테스트 결과
+Open unnamed (1).png
+
+a very cute cat
+공식 Dalle2 model의 weight는 제공 X
+
+dalle 2-laion의 경우 github에 있는 모델 버전은 1.41.1이지만, dalle 2-laion의 코드를 그대로 사용할 경우 weight 버전은 1.1.0이 사용되기 때문에 noise 결과 값이 출력 됨
+
+dalle 2-laion을 1.1.0으로 버전을 낮추면 위의 그림과 같이 애매한 결과 값이 출력 됨
+
+weight의 버전을 1.14.1로 맞추면 좀 더 나은 결과 값을 보여 줄 수 있으나, 현재 프로젝트가 방치되어 있기 때문에 무엇이 1.41.1에 맞는 weight 버전인지 알 수가 없음 
+
+현재 1.41.1에 맞는 weight 버전을 찾고 있는 중임
